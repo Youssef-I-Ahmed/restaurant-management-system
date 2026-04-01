@@ -1,9 +1,10 @@
 {
   "name": "back-end",
   "version": "1.0.0",
-  "description": "",
+  "description": "Full Stack Project",
   "main": "app.js",
   "scripts": {
+    "backfill:inventory": "node scripts/backfillInventory.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,10 +13,24 @@
   "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.2.4"
-  }
+    "mongodb": "^7.1.0",
+    "mongoose": "^9.3.1",
+    "multer": "^2.1.1"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Youssef-I-Ahmed/restaurant-management-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Youssef-I-Ahmed/restaurant-management-system/issues"
+  },
+  "homepage": "https://github.com/Youssef-I-Ahmed/restaurant-management-system#readme"
 }

@@ -32,6 +32,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    phone: {
+      type: String,
+      default: "",
+    },
+
+    id_card: {
+      front: String,
+      back: String,
+    },
   },
   { timestamps: true }
 );

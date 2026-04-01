@@ -3,18 +3,12 @@ const User = require("../Models/User");
 const bcrypt = require("bcrypt");
 
 const generateToken = (userId) =>
-  jwt.sign({ id: userId }, process.env.JWT_SECRET);
-
+  jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  });
 const register = async (req, res) => {
   try {
-    //get  data
     const { name, email, password, role } = req.body;
-    // validation
-    if (!name || !email || !password)
-      return res.status(400).json({
-        success: false,
-        message: "Name, email, and password are required.",
-      });
 
     const existing = await User.findOne({ email });
     if (existing)
@@ -22,7 +16,6 @@ const register = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Email is already registered." });
 
-    // Create New User
     const hashPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       name,
@@ -30,7 +23,6 @@ const register = async (req, res) => {
       password: hashPassword,
       role,
     });
-    // Response
 
     res.status(201).json({
       success: true,
@@ -39,18 +31,17 @@ const register = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    // Validated Data
 
-    if (!email || !password)
-      return res
-        .status(400)
-        .json({ success: false, message: "Email and password are required." });
+    const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select("+password");
     if (!user || !user.is_active)
@@ -59,21 +50,25 @@ const login = async (req, res) => {
         .json({ success: false, message: "Invalid email." });
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch)
       return res
         .status(400)
         .json({ success: false, message: "Invalid password." });
 
     user.password = undefined;
-
     res.status(200).json({
       success: true,
       message: "Login successful.",
-      token: generateToken(user.id),
+      token: generateToken(user._id),
       data: { user },
     });
   } catch (err) {
     console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
@@ -99,7 +94,7 @@ const updateProfile = async (req, res) => {
     if (name) updateData.name = name;
     if (email) updateData.email = email;
 
-    const user = await User.findByIdAndUpdate(req.user.id, updateData, {
+    const user = await User.findByIdAndUpdate(req.user._id, updateData, {
       new: true,
       runValidators: true,
     });
@@ -111,6 +106,10 @@ const updateProfile = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 
@@ -118,25 +117,13 @@ const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
-    if (!currentPassword || !newPassword)
-      return res.status(400).json({
-        success: false,
-        message: "Both currentPassword and newPassword are required.",
-      });
-
-    if (newPassword.length < 6)
-      return res.status(400).json({
-        success: false,
-        message: "New password must be at least 6 characters.",
-      });
-
     if (currentPassword === newPassword)
       return res.status(400).json({
         success: false,
         message: "New password must be different from current password.",
       });
 
-    const user = await User.findById(req.user.id).select("password");
+    const user = await User.findById(req.user._id).select("+password");
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch)
       return res
@@ -151,6 +138,10 @@ const changePassword = async (req, res) => {
       .json({ success: true, message: "Password changed successfully." });
   } catch (err) {
     console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
   }
 };
 

@@ -1,136 +1,149 @@
-# 🍽 Smart Restaurant Management System
+# Smart Restaurant Management System - Backend
 
-Full Stack Project
+Node.js + Express + MongoDB backend for restaurant operations, with JWT authentication, role-based access control, product/category management, order workflow, and inventory tracking.
 
-------------------------------------------------------------------------
+## Tech Stack
 
-## 📌 Overview
+- Node.js (CommonJS)
+- Express 5
+- MongoDB + Mongoose
+- JWT (`jsonwebtoken`)
+- Password hashing (`bcrypt`)
+- Request validation (`joi`)
 
-Smart Restaurant Management System is a scalable digital platform
-designed to streamline restaurant operations.\
-The system replaces manual processes with a secure, role-driven digital
-workflow.
+## Implemented Modules
 
-### Core Objectives:
+- Authentication and profile management
+- User management (admin-only except `GET /users/:id` after auth)
+- Category CRUD with parent/child tree support
+- Product CRUD with soft delete and availability toggle
+- Order lifecycle and role-based transitions
+- Inventory quantities, low stock checks, and inventory movement logs
 
--   Implement secure JWT-based authentication
--   Enforce Role-Based Access Control (RBAC)
--   Build a real-world order lifecycle workflow
--   Manage inventory with automatic stock deduction
--   Provide business insights through a dashboard
+## Roles and Access Summary
 
-------------------------------------------------------------------------
+- `admin`: full access across all modules
+- `manager`: categories, products, inventory, order monitoring, and order cancellation
+- `cashier`: create/update own pending orders, complete ready orders, view today's orders
+- `kitchen`: view active orders (`pending`, `preparing`, `ready`) and update kitchen transitions
 
-## 🏗 System Architecture
+## Important Business Rules
 
-### Backend Stack
+- Registration endpoint is protected and allowed for admins only.
+- Product deletion is soft delete (`is_deleted=true`, `is_available=false`).
+- Product cannot be deleted if linked to existing orders.
+- Inventory is checked before order creation/update; insufficient stock blocks the request.
+- Pending orders only can be edited or canceled.
+- Order status transitions are role-restricted:
+  - Kitchen: `pending -> preparing -> ready`
+  - Cashier: `ready -> completed`
+  - Admin: `pending -> preparing -> ready -> completed`
 
--   Node.js
--   Express.js
--   MongoDB (Mongoose)
--   JWT Authentication
--   bcrypt for password hashing
--   Modular Clean Architecture (Routes / Controllers / Services)
+## Inventory Logging Design (Updated)
 
-### Frontend (Planned)
+Inventory movement logs are now embedded inside each inventory document:
 
--   React.js
--   Role-Based UI Rendering
--   Dashboard with charts
--   Full API integration
+- Model: `Inventory.logs[]` subdocuments
+- Log types: `deduction`, `restock`, `adjustment`, `return`
+- Logged fields: quantity change, before/after quantities, reason, related order, performer
 
-------------------------------------------------------------------------
+This replaced the old standalone `InventoryLog` collection/model.
 
-## 🔐 Roles & Permissions
+## API Route Map
 
-  Role            Capabilities
-  --------------- -----------------------------------------
-  Admin           Full system control
-  Manager         Manage menu & inventory, monitor orders
-  Cashier         Create & close orders
-  Kitchen Staff   Update order status only
+Base prefix is `/api`.
 
-------------------------------------------------------------------------
+### Auth
 
-## ⚙ Core Features
+- `POST /auth/login`
+- `POST /auth/register` (admin only)
+- `GET /auth/me`
+- `PUT /auth/profile`
+- `POST /auth/change-password`
 
-### 1️⃣ Authentication & Authorization
+### Users
 
--   User registration & login
--   JWT-based session management
--   Role-based route protection
--   Soft-delete for users
+- `GET /users/:id` (authenticated)
+- `GET /users` (admin)
+- `PUT /users/:id` (admin)
+- `PUT /users/:id/role` (admin)
+- `DELETE /users/:id` (admin, deactivates account)
 
-### 2️⃣ Menu Management
+### Categories
 
--   Categories CRUD
--   Products CRUD
--   Profit margin auto-calculation
--   Prevent deletion of products linked to orders
+- `GET /categories`
+- `GET /categories/:id`
+- `POST /categories` (admin/manager)
+- `PUT /categories/:id` (admin/manager)
+- `DELETE /categories/:id` (admin/manager)
 
-### 3️⃣ Orders Workflow
+### Products
 
--   Pending → Preparing → Ready → Completed
--   Inventory auto-deduction on confirmation
--   Orders locked after preparation starts
--   Cancel allowed only before preparation
+- `GET /products`
+- `GET /products/:id`
+- `POST /products` (admin/manager)
+- `PUT /products/:id` (admin/manager)
+- `DELETE /products/:id` (admin/manager)
+- `PATCH /products/:id/status` (admin/manager)
 
-### 4️⃣ Inventory System
+### Orders
 
--   Real-time stock tracking
--   Low-stock alerts
--   Inventory movement logging
--   Block order if stock insufficient
+- `GET /orders` (admin/manager/cashier/kitchen)
+- `GET /orders/:id` (admin/manager/cashier/kitchen)
+- `POST /orders` (cashier/admin)
+- `PUT /orders/:id` (cashier/admin)
+- `PATCH /orders/:id/status` (kitchen/cashier/admin)
+- `DELETE /orders/:id` (cashier/admin/manager)
 
-### 5️⃣ Dashboard
+### Inventory
 
--   Daily revenue
--   Order count
--   Top-selling products
--   Order status distribution
+- `GET /inventory` (admin/manager)
+- `GET /inventory/:productId` (admin/manager)
+- `PUT /inventory/:productId` (admin/manager)
+- `POST /inventory/restock` (admin/manager)
+- `GET /inventory/low-stock` (admin/manager)
+- `GET /inventory/logs` (admin/manager)
 
-------------------------------------------------------------------------
+## Query and Filter Highlights
 
-## 📊 Development Phases
+- `GET /products` supports category, min/max price, availability, and include deleted.
+- `GET /orders` supports scope/date/cashier/status/total filters with role-aware behavior.
+- `GET /inventory/logs` supports `product`, `type`, `dateFrom`, and `dateTo` filters.
 
-  Phase       Focus Area
-  ----------- ----------------------------
-  Phase 1.1   Authentication & Users
-  Phase 1.2   Menu & Categories
-  Phase 1.3   Orders System
-  Phase 1.4   Inventory
-  Phase 1.5   Dashboard
-  Phase 2     Advanced Analytics
-  Phase 3     AI-Based Demand Prediction
+## Setup
 
-------------------------------------------------------------------------
+1. Install dependencies:
 
-## 🎯 Project Goal
+```bash
+npm install
+```
 
-This project demonstrates real-world backend architecture, business
-logic implementation, and scalable system design suitable for a junior
-Full Stack developer portfolio.
+2. Create `.env` file in `Backend/` with at least:
 
-------------------------------------------------------------------------
+```env
+PORT=5000
+DB_URL=<your-mongodb-connection-string>
+JWT_SECRET=<your-jwt-secret>
+JWT_EXPIRES_IN=7d
+```
 
-## 📄 Documentation
+3. Run the server:
 
-Full Project Idea Proposal is available inside the `/docs` folder.
+```bash
+node app.js
+```
 
-------------------------------------------------------------------------
+Server starts at `http://localhost:5000` by default.
 
-## Author
+## Utility Script
 
-Yousef Ismail Ahmed
+Backfill inventory records for existing products:
 
-#### 🔗 LinkedIn:
-Yousef Ismail
+```bash
+npm run backfill:inventory
+```
 
-Data Science & AI-Based Software Development Trainee
+## Notes
 
-👉 (https://www.linkedin.com/in/yousef-ismail87/)
-
-
-------------------------------------------------------------------------
-
-### ⭐ If you found this project helpful, consider giving it a star!
+- There is currently no automated test suite configured (`npm test` is placeholder).
+- Frontend apps exist in the repository under `Frontend/` and are not covered in this backend README.
